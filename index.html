@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Cycle Analyzer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b0b12;color:#e2e2ee;font-family:'Space Mono',monospace;min-height:100vh;padding:20px}
+h1{font-size:20px;font-weight:800;letter-spacing:-0.02em;font-family:'Syne',sans-serif}
+.sub{font-size:12px;color:#555570;margin-top:2px;font-family:'Space Mono',monospace}
+header{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.logo{width:38px;height:38px;background:#6c5ce7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.search{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.search input{flex:1;min-width:180px;background:#13131f;border:1px solid #2a2a3f;border-radius:10px;padding:11px 15px;color:#e2e2ee;font-size:14px;outline:none;transition:border .2s;font-family:'Space Mono',monospace}
+.search input:focus{border-color:#6c5ce7}
+.search input::placeholder{color:#444460}
+.btn{background:#6c5ce7;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Space Mono',monospace}
+.btn:hover{background:#7d6ef0}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.qbtn{background:#13131f;border:1px solid #2a2a3f;border-radius:20px;padding:5px 13px;font-size:12px;cursor:pointer;color:#777790;font-family:'Space Mono',monospace;transition:all .15s}
+.qbtn:hover:not(:disabled){border-color:#6c5ce7;color:#6c5ce7}
+.qbtn:disabled{opacity:.3;cursor:not-allowed}
+.panel{background:#13131f;border:1px solid #1e1e30;border-radius:14px;padding:18px 20px;margin-bottom:12px}
+.ptitle{font-size:10px;font-family:'Space Mono',monospace;color:#444460;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.mc{background:#13131f;border:1px solid #1e1e30;border-radius:12px;padding:14px}
+.ml{font-size:10px;color:#555570;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.mv{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:-.02em}
+.ms{font-size:11px;font-family:'Space Mono',monospace;margin-top:3px;color:#555570}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.sb{background:#0b0b12;border:1px solid #1e1e30;border-radius:10px;padding:11px}
+.sn{font-size:10px;color:#555570;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.sv{font-size:15px;font-weight:700;font-family:'Space Mono',monospace;margin-bottom:4px}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;font-family:'Space Mono',monospace;font-weight:600}
+.bull{background:rgba(34,197,94,.15);color:#22c55e}
+.bear{background:rgba(239,68,68,.15);color:#ef4444}
+.neut{background:rgba(100,100,130,.2);color:#6b7280}
+.warn{background:rgba(234,179,8,.15);color:#eab308}
+.tftabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tft{background:transparent;border:1px solid #2a2a3f;border-radius:20px;padding:5px 14px;font-size:12px;font-family:'Space Mono',monospace;cursor:pointer;color:#555570;transition:all .15s}
+.tft.active{background:#6c5ce7;border-color:#6c5ce7;color:#fff;font-weight:700}
+.tft:hover:not(.active){border-color:#6c5ce7;color:#6c5ce7}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tb{border-radius:12px;padding:15px;text-align:center}
+.tb.entry{background:rgba(77,166,255,.07);border:1px solid rgba(77,166,255,.2)}
+.tb.target{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2)}
+.tb.stop{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)}
+.tl{font-size:10px;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.tb.entry .tl{color:#4da6ff}
+.tb.target .tl{color:#22c55e}
+.tb.stop .tl{color:#ef4444}
+.tp{font-size:17px;font-weight:700;font-family:'Space Mono',monospace;margin-bottom:3px}
+.tb.entry .tp{color:#4da6ff}
+.tb.target .tp{color:#22c55e}
+.tb.stop .tp{color:#ef4444}
+.tsub{font-size:10px;font-family:'Space Mono',monospace;color:#555570}
+.rrrow{display:flex;align-items:center;gap:8px;margin-bottom:13px;flex-wrap:wrap}
+.rrbadge{background:rgba(108,92,231,.15);color:#6c5ce7;border:1px solid rgba(108,92,231,.3);border-radius:20px;padding:4px 14px;font-size:13px;font-family:'Space Mono',monospace;font-weight:700}
+.fibs{display:flex;flex-direction:column}
+.fr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a1a28;font-size:12px;font-family:'Space Mono',monospace}
+.fr:last-child{border-bottom:none}
+.fl{color:#555570;font-size:11px}
+.fp{font-weight:700}
+.cbar{height:6px;background:#0b0b12;border-radius:3px;overflow:hidden;margin:8px 0}
+.cbf{height:100%;border-radius:3px;transition:width .8s}
+.caxis{display:flex;justify-content:space-between;font-size:10px;color:#444460;font-family:'Space Mono',monospace}
+.ptag{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;font-family:'Space Mono',monospace;margin-bottom:8px}
+.chwrap{position:relative;width:100%;height:200px;margin-top:8px}
+.halving-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:4px}
+.hc{background:#0b0b12;border:1px solid #1e1e30;border-radius:10px;padding:12px}
+.hcl{font-size:10px;color:#555570;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.hcv{font-size:14px;font-weight:700;font-family:'Space Mono',monospace}
+.hcsub{font-size:10px;color:#555570;font-family:'Space Mono',monospace;margin-top:2px}
+.rainbow-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.rband{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.rtext{font-size:13px;font-family:'Space Mono',monospace}
+.rsub{font-size:11px;color:#555570;font-family:'Space Mono',monospace;margin-left:4px}
+.cycle-timeline{display:flex;margin:10px 0;border-radius:8px;overflow:hidden;height:28px}
+.ct-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'Space Mono',monospace;font-weight:700;transition:opacity .3s}
+.ct-seg.dim{opacity:.3}
+#loading{text-align:center;padding:50px 20px;font-family:'Space Mono',monospace;color:#555570;display:none}
+.spin{width:26px;height:26px;border:2px solid #1e1e30;border-top-color:#6c5ce7;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.errbox{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:18px;text-align:center;color:#ef4444;font-family:'Space Mono',monospace;font-size:13px;display:none}
+.disc{font-size:10px;color:#333350;font-family:'Space Mono',monospace;margin-top:8px;padding-top:10px;border-top:1px solid #1a1a28;text-align:center}
+.coinhead{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.coinimg{width:34px;height:34px;border-radius:50%}
+.coinname{font-size:17px;font-weight:800;font-family:'Syne',sans-serif}
+.coinsym{font-size:12px;color:#555570;font-family:'Space Mono',monospace;margin-top:1px}
+#content{display:none}
+.conf-row{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 14px;background:#0b0b12;border-radius:10px;border:1px solid #1e1e30}
+.conf-label{font-size:11px;color:#555570;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.conf-bar-wrap{flex:1;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden}
+.conf-bar{height:100%;border-radius:3px;transition:width .8s}
+.conf-val{font-size:14px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;min-width:38px;text-align:right}
+.subscores{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:12px}
+.ssb{background:#0b0b12;border:1px solid #1e1e30;border-radius:10px;padding:10px}
+.ssl{font-size:10px;color:#555570;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.ssv{font-size:18px;font-weight:700;font-family:'Space Mono',monospace}
+.ssbar{height:3px;border-radius:2px;margin-top:6px;background:#1e1e30;overflow:hidden}
+.ssbf{height:100%;border-radius:2px;transition:width .6s}
+.atr-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;font-family:'Space Mono',monospace;font-weight:600;background:rgba(108,92,231,.12);color:#a89df7;border:1px solid rgba(108,92,231,.2);margin-left:6px}
+.info-strip{background:rgba(108,92,231,.06);border:1px solid rgba(108,92,231,.15);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#888aaa;font-family:'Space Mono',monospace;display:flex;align-items:center;gap:8px}
+.info-strip span{color:#6c5ce7;font-weight:700}
+
+/* ── MOBILE OTTIMIZZATO ── */
+@media(max-width:600px){
+  body{padding:12px 10px 24px}
+  h1{font-size:17px}
+  .sub{font-size:11px}
+  header{gap:10px;margin-bottom:16px}
+  .logo{width:34px;height:34px;font-size:18px;border-radius:8px}
+
+  /* Search bar: input full width, bottone + select in riga sotto */
+  .search{flex-direction:column;gap:6px}
+  .search input{min-width:0;width:100%;font-size:15px;padding:13px 14px}
+  .search-actions{display:flex;gap:6px;width:100%}
+  .btn{flex:1;padding:12px 10px;font-size:14px}
+  #currencySelect{flex:0 0 90px;height:46px;font-size:13px;padding:0 10px}
+
+  /* Quick buttons */
+  .quick{gap:5px;margin-bottom:16px}
+  .qbtn{padding:6px 12px;font-size:12px}
+
+  /* Metric cards */
+  .mgrid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+  .mc{padding:12px}
+  .mv{font-size:19px}
+  .ml{font-size:10px}
+  .ms{font-size:11px}
+
+  /* Panels */
+  .panel{padding:14px 13px;margin-bottom:10px;border-radius:12px}
+  .ptitle{margin-bottom:10px}
+
+  /* Halving grid */
+  .halving-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .hcv{font-size:13px}
+  .hcl{font-size:9px}
+  .hcsub{font-size:9px}
+
+  /* Cycle timeline labels */
+  .ct-seg{font-size:9px}
+  .cycle-timeline{height:24px}
+
+  /* Indicators grid */
+  .sgrid{grid-template-columns:repeat(2,1fr);gap:6px}
+  .sb{padding:9px}
+  .sv{font-size:14px}
+
+  /* Trade setup tabs */
+  .tftabs{gap:5px;margin-bottom:10px}
+  .tft{padding:6px 11px;font-size:11px}
+
+  /* Trade setup grid: 1 colonna su mobile */
+  .tgrid{grid-template-columns:1fr;gap:7px}
+  .tb{padding:12px;display:flex;align-items:center;justify-content:space-between;text-align:left;gap:8px}
+  .tl{margin-bottom:0;font-size:10px;flex:1}
+  .tp{font-size:16px;margin-bottom:0}
+  .tsub{font-size:10px;text-align:right}
+
+  /* Risk/reward row */
+  .rrrow{gap:6px;margin-bottom:10px}
+
+  /* Fibonacci */
+  .fr{font-size:11px;padding:7px 0}
+  .fp{font-size:12px}
+
+  /* Chart */
+  .chwrap{height:180px}
+
+  /* Sub-scores */
+  .subscores{grid-template-columns:repeat(3,1fr);gap:6px}
+  .ssv{font-size:16px}
+
+  /* Confidence row */
+  .conf-row{flex-wrap:wrap;gap:6px;padding:9px 11px}
+  .conf-label{font-size:10px}
+  .conf-val{font-size:13px}
+
+  /* Info strip */
+  .info-strip{font-size:10px;padding:8px 11px;flex-wrap:wrap}
+
+  /* Coin header */
+  .coinhead{gap:10px;margin-bottom:14px}
+  .coinname{font-size:15px}
+  .coinsym{font-size:11px}
+  .coinimg{width:30px;height:30px}
+
+  /* Disclaimer */
+  .disc{font-size:9px;padding-top:8px}
+
+  /* Prevent horizontal scroll from long text */
+  .ptag{max-width:100%;white-space:normal;word-break:break-word}
+}
+
+/* Tablet portrait */
+@media(min-width:601px) and (max-width:820px){
+  .tgrid{grid-template-columns:1fr}
+  .mgrid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◈</div>
+  <div>
+    <h1>Crypto Cycle Analyzer</h1>
+    <div class="sub">analisi tecnica + cicli macro · probabilistico</div>
+  </div>
+</header>
+
+<div class="search">
+  <input type="text" id="coinInput" placeholder="Inserisci crypto (bitcoin, ethereum, solana...)" value="bitcoin" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" />
+  <div class="search-actions">
+    <button class="btn" id="abtn" onclick="loadCoin(true)">Analizza</button>
+    <select id="currencySelect" style="background:#13131f;border:1px solid #2a2a3f;border-radius:10px;padding:11px 14px;color:#e2e2ee;font-size:13px;font-family:'Space Mono',monospace;outline:none;cursor:pointer;height:44px">
+      <option value="usd">$ USD</option>
+      <option value="eur">&#8364; EUR</option>
+    </select>
+  </div>
+</div>
+
+<div class="quick">
+  <button class="qbtn" onclick="q('bitcoin')">BTC</button>
+  <button class="qbtn" onclick="q('ethereum')">ETH</button>
+  <button class="qbtn" onclick="q('solana')">SOL</button>
+  <button class="qbtn" onclick="q('binancecoin')">BNB</button>
+  <button class="qbtn" onclick="q('ripple')">XRP</button>
+  <button class="qbtn" onclick="q('dogecoin')">DOGE</button>
+  <button class="qbtn" onclick="q('sui')">SUI</button>
+  <button class="qbtn" onclick="q('avalanche-2')">AVAX</button>
+  <button class="qbtn" onclick="q('cardano')">ADA</button>
+  <button class="qbtn" onclick="q('polkadot')">DOT</button>
+</div>
+
+<div id="loading"><div class="spin"></div>Caricamento dati...</div>
+<div class="errbox" id="errbox"></div>
+<div id="content"></div>
+
+<script>
+var chart=null, cdata=null, atf='swing';
+var _cache={};
+
+// Mappa input -> simbolo Binance (USDT pair)
+var COIN_MAP={
+  'bitcoin':'BTC','btc':'BTC',
+  'ethereum':'ETH','eth':'ETH',
+  'solana':'SOL','sol':'SOL',
+  'binancecoin':'BNB','bnb':'BNB','binance-coin':'BNB',
+  'ripple':'XRP','xrp':'XRP',
+  'dogecoin':'DOGE','doge':'DOGE',
+  'sui':'SUI',
+  'avalanche-2':'AVAX','avax':'AVAX','avalanche':'AVAX',
+  'cardano':'ADA','ada':'ADA',
+  'polkadot':'DOT','dot':'DOT',
+  'chainlink':'LINK','link':'LINK',
+  'uniswap':'UNI','uni':'UNI',
+  'litecoin':'LTC','ltc':'LTC',
+  'stellar':'XLM','xlm':'XLM',
+  'tron':'TRX','trx':'TRX',
+  'shiba-inu':'SHIB','shib':'SHIB',
+  'pepe':'PEPE',
+  'near':'NEAR','near-protocol':'NEAR',
+  'aptos':'APT','apt':'APT',
+  'arbitrum':'ARB','arb':'ARB',
+  'optimism':'OP','op':'OP',
+  'injective':'INJ','inj':'INJ',
+  'filecoin':'FIL','fil':'FIL',
+  'cosmos':'ATOM','atom':'ATOM',
+  'aave':'AAVE',
+  'toncoin':'TON','ton':'TON',
+  'sei':'SEI',
+  'render-token':'RENDER','render':'RENDER',
+  'internet-computer':'ICP','icp':'ICP',
+  'monero':'XMR','xmr':'XMR',
+  'maker':'MKR','mkr':'MKR',
+  'the-sandbox':'SAND','sand':'SAND',
+  'decentraland':'MANA','mana':'MANA',
+  'wormhole':'W'
+};
+
+// Nomi completi per display
+var COIN_NAMES={
+  'BTC':'Bitcoin','ETH':'Ethereum','SOL':'Solana','BNB':'BNB',
+  'XRP':'XRP','DOGE':'Dogecoin','SUI':'Sui','AVAX':'Avalanche',
+  'ADA':'Cardano','DOT':'Polkadot','LINK':'Chainlink','UNI':'Uniswap',
+  'LTC':'Litecoin','XLM':'Stellar','TRX':'Tron','SHIB':'Shiba Inu',
+  'PEPE':'Pepe','NEAR':'Near Protocol','APT':'Aptos','ARB':'Arbitrum',
+  'OP':'Optimism','INJ':'Injective','FIL':'Filecoin','ATOM':'Cosmos',
+  'AAVE':'Aave','TON':'Toncoin','SEI':'Sei','RENDER':'Render',
+  'ICP':'Internet Computer','XMR':'Monero','MKR':'Maker',
+  'SAND':'The Sandbox','MANA':'Decentraland','W':'Wormhole'
+};
+
+async function cachedFetch(url){
+  if(_cache[url])return _cache[url];
+  var res=await fetch(url);
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  var data=await res.json();
+  _cache[url]=data;
+  return data;
+}
+
+function fmt(n){
+  if(n===null||n===undefined||isNaN(n))return'--';
+  var s=typeof getCurrencySymbol==='function'?getCurrencySymbol():'$';
+  if(n>=10000)return s+Math.round(n).toLocaleString('it-IT');
+  if(n>=100)return s+n.toFixed(2);
+  if(n>=1)return s+n.toFixed(3);
+  if(n>=0.001)return s+n.toFixed(6);
+  if(n>=0.00001)return s+n.toFixed(8);
+  return s+n.toFixed(10);
+}
+
+function pct(n){
+  if(isNaN(n)||n===null)return'--';
+  return(n>=0?'+':'')+n.toFixed(2)+'%';
+}
+
+function ema(arr,p){
+  if(arr.length<p)return arr[arr.length-1];
+  var k=2/(p+1),e=arr.slice(0,p).reduce(function(a,b){return a+b},0)/p;
+  for(var i=p;i<arr.length;i++)e=arr[i]*k+e*(1-k);
+  return e;
+}
+
+function rsi(arr,p){
+  p=p||14;
+  if(arr.length<p+1)return null;
+  var g=0,l=0;
+  for(var i=1;i<=p;i++){var d=arr[i]-arr[i-1];if(d>0)g+=d;else l-=d;}
+  var ag=g/p,al=l/p;
+  for(var i=p+1;i<arr.length;i++){var d=arr[i]-arr[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;}
+  if(al===0)return 100;
+  return parseFloat((100-100/(1+ag/al)).toFixed(2));
+}
+
+function macd(arr){
+  if(arr.length<35)return null;
+  var sl=arr.slice(-80),ms=[];
+  for(var i=26;i<=sl.length;i++){ms.push(ema(sl.slice(0,i),12)-ema(sl.slice(0,i),26));}
+  var ml=ms[ms.length-1],sig=ms.length>=9?ema(ms,9):ml;
+  return{macd:parseFloat(ml.toFixed(4)),signal:parseFloat(sig.toFixed(4)),hist:parseFloat((ml-sig).toFixed(4))};
+}
+
+function fibs(hi,lo){
+  var r=hi-lo;
+  return{max:hi,min:lo,r236:hi-r*.236,r382:hi-r*.382,r500:hi-r*.5,r618:hi-r*.618,r786:hi-r*.786,ext127:hi+r*.272,ext161:hi+r*.618};
+}
+
+function atr(prices,period){
+  period=period||14;
+  if(prices.length<period+1)return null;
+  var trs=[];
+  for(var i=1;i<prices.length;i++){
+    var cur=prices[i][1],prev=prices[i-1][1];
+    trs.push(Math.abs(cur-prev)*1.4);
+  }
+  var slice=trs.slice(-period);
+  return slice.reduce(function(a,b){return a+b},0)/period;
+}
+
+function cycleScores(arr,rv,mv){
+  if(arr.length<20)return{trend:50,momentum:50,volume:50,volatility:50,phase:'Dati insufficienti',score:50,color:'#6b7280',bar:'#6b7280'};
+  var cur=arr[arr.length-1];
+  var m20=ema(arr.slice(-20),20);
+  var m50=arr.length>=50?ema(arr.slice(-50),50):null;
+  var trendScore=50;
+  var r1=arr.slice(-15),r2=arr.slice(-30,-15);
+  var maxR1=Math.max.apply(null,r1),maxR2=Math.max.apply(null,r2);
+  var minR1=Math.min.apply(null,r1),minR2=Math.min.apply(null,r2);
+  if(maxR1>maxR2)trendScore+=15;else trendScore-=15;
+  if(minR1>minR2)trendScore+=10;else trendScore-=10;
+  if(cur>m20)trendScore+=15;else trendScore-=15;
+  if(m50&&cur>m50)trendScore+=10;else if(m50)trendScore-=10;
+  trendScore=Math.max(0,Math.min(100,trendScore));
+
+  var momScore=50;
+  if(rv){if(rv>70)momScore+=20;else if(rv>55)momScore+=10;else if(rv<30)momScore-=20;else if(rv<45)momScore-=10;}
+  if(mv){if(mv.hist>0&&mv.macd>0)momScore+=20;else if(mv.hist>0)momScore+=10;else if(mv.hist<0&&mv.macd<0)momScore-=20;else if(mv.hist<0)momScore-=10;}
+  var ra=arr.slice(-7).reduce(function(a,b){return a+b},0)/7;
+  var mb=arr.slice(-30,-7);
+  var mbAvg=mb.reduce(function(a,b){return a+b},0)/Math.max(mb.length,1);
+  var mom=(ra-mbAvg)/mbAvg*100;
+  if(mom>5)momScore+=10;else if(mom>2)momScore+=5;else if(mom<-5)momScore-=10;else if(mom<-2)momScore-=5;
+  momScore=Math.max(0,Math.min(100,momScore));
+
+  var volScore=50;
+  var changes=[];
+  for(var i=1;i<arr.length;i++)changes.push(Math.abs((arr[i]-arr[i-1])/arr[i-1]*100));
+  var avgVol=changes.slice(-14).reduce(function(a,b){return a+b},0)/14;
+  if(avgVol<2)volScore=70;else if(avgVol<4)volScore=55;else if(avgVol<7)volScore=45;else volScore=30;
+
+  var s=Math.round(trendScore*0.4+momScore*0.45+volScore*0.15);
+  s=Math.max(0,Math.min(100,s));
+  var phase,color;
+  if(s>=75){phase='Possibile fase di distribuzione';color='#ef4444';}
+  else if(s>=60){phase='Momentum rialzista in corso';color='#22c55e';}
+  else if(s>=45){phase='Fase laterale / indecisa';color='#eab308';}
+  else if(s>=30){phase='Pressione ribassista';color='#f97316';}
+  else{phase='Possibile zona di accumulazione';color='#4da6ff';}
+  return{trend:Math.round(trendScore),momentum:Math.round(momScore),volatility:Math.round(volScore),score:s,phase:phase,color:color,bar:color};
+}
+
+function confidenceScore(cy,rv,mv,prices){
+  var pts=0,max=0;
+  max+=40;
+  var bullCount=0;
+  if(rv&&rv>55)bullCount++;else if(rv&&rv<45)bullCount--;
+  if(mv&&mv.hist>0)bullCount++;else if(mv&&mv.hist<0)bullCount--;
+  if(cy.trend>60)bullCount++;else if(cy.trend<40)bullCount--;
+  pts+=Math.round(Math.abs(bullCount)/3*40);
+  max+=30;
+  var distNeutral=Math.abs(cy.score-50);
+  pts+=Math.round(distNeutral/50*30);
+  max+=20;
+  pts+=Math.round((cy.volatility/100)*20);
+  max+=10;
+  if(rv&&mv){
+    var rsiDir=rv>55?1:rv<45?-1:0;
+    var macdDir=mv.hist>0?1:-1;
+    if(rsiDir===macdDir&&rsiDir!==0)pts+=10;
+    else if(rsiDir!==0&&macdDir!==0)pts+=3;
+  }
+  var conf=Math.round(pts/max*100);
+  return Math.max(20,Math.min(92,conf));
+}
+
+function halvingAnalysis(coinId,currentPrice,ath){
+  var now=new Date();
+  var lastHalving=new Date('2024-04-19');
+  var nextHalving=new Date('2028-03-01');
+  var daysSince=Math.round((now-lastHalving)/(1000*60*60*24));
+  var daysToNext=Math.round((nextHalving-now)/(1000*60*60*24));
+  var totalCycle=Math.round((nextHalving-lastHalving)/(1000*60*60*24));
+  var progress=Math.min(100,Math.round(daysSince/totalCycle*100));
+  var cyclePhaseName,cycleColor,cycleAdvice;
+  if(daysSince<180){
+    cyclePhaseName='Post-halving: fase di accumulo storico';cycleColor='#4da6ff';
+    cycleAdvice='Storicamente favorevole per accumulo graduale. I prezzi tendono ad apprezzarsi nei mesi successivi all\'halving.';
+  }else if(daysSince<400){
+    cyclePhaseName='Espansione: momentum rialzista atteso';cycleColor='#22c55e';
+    cycleAdvice='Storicamente il periodo di maggiore crescita del ciclo. Gestione del rischio consigliata.';
+  }else if(daysSince<550){
+    cyclePhaseName='Zona di potenziale picco ciclico';cycleColor='#eab308';
+    cycleAdvice='Storicamente i massimi BTC si raggiungono 12–18 mesi dopo l\'halving. Aumenta la cautela.';
+  }else{
+    cyclePhaseName='Post-picco: possibile fase correttiva';cycleColor='#ef4444';
+    cycleAdvice='Le fasi correttive durano storicamente 1–2 anni dal picco. Valutare riduzione esposizione.';
+  }
+  var athPct=currentPrice&&ath?((currentPrice-ath)/ath*100):null;
+  return{daysSince:daysSince,daysToNext:daysToNext,progress:progress,totalCycle:totalCycle,cyclePhaseName:cyclePhaseName,cycleColor:cycleColor,cycleAdvice:cycleAdvice,athPct:athPct,lastHalving:lastHalving,nextHalving:nextHalving};
+}
+
+function rainbowBand(price,ath){
+  if(!price||!ath)return{label:'N/D',color:'#6b7280',advice:'Dati insufficienti'};
+  var ratio=price/ath;
+  if(ratio>=0.9)return{label:'Zona storicamente di massima euforia',color:'#ef4444',advice:'Area di distribuzione storica. Prudenza massima.'};
+  if(ratio>=0.7)return{label:'Zona di potenziale euforia',color:'#f97316',advice:'Probabile zona di distribuzione. Take profit parziali storicamente opportuni.'};
+  if(ratio>=0.5)return{label:'Momentum rialzista attivo',color:'#eab308',advice:'Uptrend in corso. Mantieni posizioni con stop trailing.'};
+  if(ratio>=0.35)return{label:'Salita moderata in corso',color:'#84cc16',advice:'Territorio rialzista. Opportunità di swing con gestione attiva.'};
+  if(ratio>=0.2)return{label:'Zona storicamente neutrale',color:'#22c55e',advice:'Area di interesse per posizioni di medio termine.'};
+  if(ratio>=0.1)return{label:'Area storicamente sottovalutata',color:'#06b6d4',advice:'Zona di possibile accumulazione storica. Valutare DCA.'};
+  return{label:'Possibile zona di capitolazione',color:'#4da6ff',advice:'Area di massima capitolazione storica. Alto rischio.'};
+}
+
+function setups(price,fb,cy,atrVal){
+  var atrMult=atrVal||price*0.02;
+  var scalpEntry=price;
+  var scalpStop=scalpEntry-(atrMult*1.2);
+  var scalpT1=scalpEntry+(atrMult*1.8);
+  var scalpT2=scalpEntry+(atrMult*3.0);
+  if(scalpStop>=scalpEntry)scalpStop=scalpEntry*0.98;
+  var scalpRR=Math.abs((scalpT1-scalpEntry)/(scalpEntry-scalpStop));
+
+  var swingEntry=price*0.97;
+  if(fb.r382<price&&fb.r382>price*0.78)swingEntry=fb.r382;
+  else if(fb.r500<price&&fb.r500>price*0.75)swingEntry=fb.r500;
+  if(swingEntry>=price)swingEntry=price*0.97;
+  var swingStop=swingEntry-(atrMult*1.8);
+  if(fb.r618<swingStop)swingStop=fb.r618;
+  if(swingStop>=swingEntry)swingStop=swingEntry*0.95;
+  var swingT1=swingEntry+(atrMult*3.5);
+  if(fb.r236>swingEntry&&fb.r236>swingT1)swingT1=fb.r236;
+  if(swingT1<=swingEntry*1.04)swingT1=swingEntry*1.08;
+  var swingT2=swingEntry+(atrMult*6.0);
+  if(fb.ext127>swingT1*1.02)swingT2=fb.ext127;
+  if(swingT2<=swingT1)swingT2=swingT1*1.08;
+  var swingRR=Math.abs((swingT1-swingEntry)/(swingEntry-swingStop));
+
+  var posEntry=price*0.88;
+  if(fb.r618<price*0.94&&fb.r618>price*0.68)posEntry=fb.r618;
+  if(posEntry>=swingEntry)posEntry=swingEntry*0.94;
+  if(posEntry>=price)posEntry=price*0.88;
+  var posStop=posEntry-(atrMult*3.0);
+  if(fb.r786<posStop)posStop=fb.r786;
+  if(posStop>=posEntry)posStop=posEntry*0.92;
+  var posT1=posEntry+(atrMult*7.0);
+  if(fb.ext127>posEntry*1.12)posT1=fb.ext127;
+  if(posT1<=posEntry*1.10)posT1=posEntry*1.15;
+  var posT2=posEntry+(atrMult*12.0);
+  if(fb.ext161>posT1*1.05)posT2=fb.ext161;
+  if(posT2<=posT1)posT2=posT1*1.20;
+
+  if(scalpStop>=scalpEntry)scalpStop=scalpEntry*0.985;
+  if(swingStop>=swingEntry)swingStop=swingEntry*0.960;
+  if(posStop>=posEntry)posStop=posEntry*0.930;
+  scalpRR=Math.abs((scalpT1-scalpEntry)/(scalpEntry-scalpStop));
+  swingRR=Math.abs((swingT1-swingEntry)/(swingEntry-swingStop));
+  var posRR=Math.abs((posT1-posEntry)/(posEntry-posStop));
+
+  return{
+    scalp:{entry:scalpEntry,t1:scalpT1,t2:scalpT2,stop:scalpStop,tf:'15m – 4h',rr:scalpRR},
+    swing:{entry:swingEntry,t1:swingT1,t2:swingT2,stop:swingStop,tf:'4h – 1D',rr:swingRR},
+    position:{entry:posEntry,t1:posT1,t2:posT2,stop:posStop,tf:'1W – 1M',rr:posRR}
+  };
+}
+
+function bdg(s,cls){return'<span class="badge '+cls+'">'+s+'</span>';}
+function bullbear(s){return bdg(s,s==='Bullish'?'bull':s==='Bearish'?'bear':s==='Warn'?'warn':'neut');}
+
+function render(coin,market,prices){
+  var p=prices.map(function(d){return d[1]});
+  var cur=p[p.length-1],hi=Math.max.apply(null,p),lo=Math.min.apply(null,p);
+  var rv=rsi(p),mv=macd(p),fb=fibs(hi,lo);
+  var cy=cycleScores(p,rv,mv);
+  var atrVal=atr(prices,14);
+  var conf=confidenceScore(cy,rv,mv,prices);
+  var m20=ema(p.slice(-20),20),m50=p.length>=50?ema(p.slice(-50),50):null;
+  var st=setups(cur,fb,cy,atrVal),s=st[atf];
+  var c24=market.price_change_percentage_24h||0,c7=market.price_change_percentage_7d_in_currency||0;
+  var ath=market.ath||null;
+  var hal=halvingAnalysis(coin.id,cur,ath);
+  var rb=rainbowBand(cur,ath);
+
+  var phaseStyle={
+    'Possibile fase di distribuzione':'background:rgba(239,68,68,.15);color:#ef4444',
+    'Momentum rialzista in corso':'background:rgba(34,197,94,.15);color:#22c55e',
+    'Fase laterale / indecisa':'background:rgba(234,179,8,.15);color:#eab308',
+    'Pressione ribassista':'background:rgba(249,115,22,.15);color:#f97316',
+    'Possibile zona di accumulazione':'background:rgba(77,166,255,.15);color:#4da6ff'
+  }[cy.phase]||'background:rgba(100,100,130,.2);color:#6b7280';
+
+  var ma20sig=cur>m20?'Bullish':'Bearish';
+  var ma50sig=m50?(cur>m50?'Bullish':'Bearish'):null;
+  var rsiSig=rv>70?'Ipercomprato':rv<30?'Ipervenduto':rv>55?'Momentum rialzista':rv<45?'Momentum ribassista':'Neutrale';
+
+  var segs=[
+    {label:'Acc.',color:'#4da6ff',pct:25},
+    {label:'Bull',color:'#22c55e',pct:30},
+    {label:'Picco',color:'#eab308',pct:20},
+    {label:'Bear',color:'#ef4444',pct:25}
+  ];
+  var activeIdx=hal.daysSince<180?0:hal.daysSince<400?1:hal.daysSince<550?2:3;
+  var segHtml=segs.map(function(sg,i){
+    return'<div class="ct-seg'+(i===activeIdx?'':' dim')+'" style="width:'+sg.pct+'%;background:'+sg.color+'">'+sg.label+'</div>';
+  }).join('');
+
+  var confColor=conf>=70?'#22c55e':conf>=50?'#eab308':'#ef4444';
+  var atrLabel=atrVal?'ATR Stima '+fmt(atrVal).replace('$','').replace('\u20ac','')+' (14g)':'Stima \u00b12%';
+  var macroTitle=coin.id==='bitcoin'?'Ciclo macro \u2014 Halving Bitcoin (ciclo 4 anni)':'Contesto Macro Bitcoin correlato (Asset analizzato: '+coin.name+')';
+
+  document.getElementById('content').innerHTML=`
+    <div class="info-strip">
+      <span>\u25c8 v3.0 Mobile</span> \u00b7 Dati Binance · Stop loss ATR · Ciclo macro BTC · EUR/USD dinamico
+    </div>
+
+    <div class="coinhead">
+      ${coin.image?'<img class="coinimg" src="'+coin.image+'" alt="'+coin.name+'" onerror="this.style.display=\'none\'">':''}
+      <div><div class="coinname">${coin.name}</div><div class="coinsym">${coin.symbol.toUpperCase()} \u00b7 Rango #${market.market_cap_rank||'--'}</div></div>
+    </div>
+
+    <div class="mgrid">
+      <div class="mc"><div class="ml">Prezzo</div><div class="mv">${fmt(cur)}</div><div class="ms" style="color:${c24>=0?'#22c55e':'#ef4444'}">${pct(c24)} 24h</div></div>
+      <div class="mc"><div class="ml">7 giorni</div><div class="mv" style="color:${c7>=0?'#22c55e':'#ef4444'}">${pct(c7)}</div><div class="ms">settimana</div></div>
+      <div class="mc"><div class="ml">RSI 14</div><div class="mv" style="color:${rv>70?'#ef4444':rv<30?'#4da6ff':rv>55?'#22c55e':rv<45?'#ef4444':'#eab308'}">${rv||'--'}</div><div class="ms">${rsiSig}</div></div>
+      <div class="mc"><div class="ml">Dist. da ATH</div><div class="mv" style="font-size:16px">${fmt(ath)}</div><div class="ms" style="color:${hal.athPct&&hal.athPct>=0?'#22c55e':'#ef4444'}">${hal.athPct!==null?pct(hal.athPct):'--'} dall\'ATH</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">${macroTitle}</div>
+      <div class="halving-grid">
+        <div class="hc"><div class="hcl">Ultimo halving</div><div class="hcv" style="color:#6c5ce7">${hal.daysSince} giorni fa</div><div class="hcsub">19 Apr 2024</div></div>
+        <div class="hc"><div class="hcl">Prossimo halving</div><div class="hcv" style="color:#4da6ff">${hal.daysToNext} giorni</div><div class="hcsub">Est. Mar 2028</div></div>
+        <div class="hc"><div class="hcl">Avanzamento ciclo</div><div class="hcv" style="color:${hal.cycleColor}">${hal.progress>100?100:hal.progress}%</div><div class="hcsub">del ciclo completato</div></div>
+      </div>
+      <div style="margin:12px 0 4px;font-size:11px;color:#555570;font-family:'Space Mono',monospace">Fase del ciclo generale di mercato:</div>
+      <div class="cycle-timeline">${segHtml}</div>
+      <div style="margin-top:8px">
+        <span class="ptag" style="background:${hal.cycleColor}22;color:${hal.cycleColor}">${hal.cyclePhaseName}</span>
+        <div style="font-size:12px;color:#777790;font-family:'Space Mono',monospace;margin-top:4px">${hal.cycleAdvice}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Posizione rispetto ATH \u2014 banda ciclica dell\'asset</div>
+      <div class="rainbow-row">
+        <div class="rband" style="background:${rb.color}"></div>
+        <div><span class="rtext" style="color:${rb.color}">${rb.label}</span></div>
+      </div>
+      <div style="font-size:12px;color:#777790;font-family:'Space Mono',monospace;margin-top:2px">${rb.advice}</div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Fase del ciclo tecnico</div>
+      <span class="ptag" style="${phaseStyle}">${cy.phase}</span>
+      <div class="cbar"><div class="cbf" style="width:${cy.score}%;background:${cy.bar}"></div></div>
+      <div class="caxis"><span>Accumulazione</span><span>Laterale</span><span>Uptrend</span><span>Distribuzione</span></div>
+      <div style="margin-top:8px;font-size:12px;font-family:'Space Mono',monospace;color:#555570">Score composito: <span style="color:#e2e2ee;font-weight:700">${cy.score}/100</span></div>
+      <div class="subscores">
+        <div class="ssb">
+          <div class="ssl">Trend</div>
+          <div class="ssv" style="color:${cy.trend>60?'#22c55e':cy.trend<40?'#ef4444':'#eab308'}">${cy.trend}</div>
+          <div class="ssbar"><div class="ssbf" style="width:${cy.trend}%;background:${cy.trend>60?'#22c55e':cy.trend<40?'#ef4444':'#eab308'}"></div></div>
+        </div>
+        <div class="ssb">
+          <div class="ssl">Momentum</div>
+          <div class="ssv" style="color:${cy.momentum>60?'#22c55e':cy.momentum<40?'#ef4444':'#eab308'}">${cy.momentum}</div>
+          <div class="ssbar"><div class="ssbf" style="width:${cy.momentum}%;background:${cy.momentum>60?'#22c55e':cy.momentum<40?'#ef4444':'#eab308'}"></div></div>
+        </div>
+        <div class="ssb">
+          <div class="ssl">Volatilit\u00e0</div>
+          <div class="ssv" style="color:${cy.volatility>60?'#22c55e':cy.volatility<40?'#ef4444':'#eab308'}">${cy.volatility}</div>
+          <div class="ssbar"><div class="ssbf" style="width:${cy.volatility}%;background:${cy.volatility>60?'#22c55e':cy.volatility<40?'#ef4444':'#eab308'}"></div></div>
+        </div>
+      </div>
+      <div class="conf-row">
+        <span class="conf-label">Affidabilit\u00e0 segnale</span>
+        <div class="conf-bar-wrap"><div class="conf-bar" style="width:${conf}%;background:${confColor}"></div></div>
+        <span class="conf-val" style="color:${confColor}">${conf}%</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Indicatori tecnici</div>
+      <div class="sgrid">
+        <div class="sb"><div class="sn">RSI 14</div><div class="sv" style="color:${rv>70?'#ef4444':rv<30?'#4da6ff':rv>55?'#22c55e':rv<45?'#ef4444':'#eab308'}">${rv||'--'}</div>${bullbear(rv>70?'Bearish':rv<30?'Bullish':rv>55?'Bullish':rv<45?'Bearish':'Neutrale')}</div>
+        <div class="sb"><div class="sn">MACD</div><div class="sv">${mv?mv.macd.toFixed(3):'--'}</div>${mv?bullbear(mv.hist>0?'Bullish':'Bearish'):bdg('N/D','neut')}</div>
+        <div class="sb"><div class="sn">MACD hist</div><div class="sv" style="color:${mv&&mv.hist>0?'#22c55e':'#ef4444'}">${mv?mv.hist.toFixed(3):'--'}</div>${mv?bullbear(mv.hist>0?'Bullish':'Bearish'):''}</div>
+        <div class="sb"><div class="sn">EMA 20</div><div class="sv" style="font-size:13px">${fmt(m20)}</div>${bullbear(ma20sig)}</div>
+        <div class="sb"><div class="sn">EMA 50</div><div class="sv" style="font-size:13px">${m50?fmt(m50):'N/D'}</div>${ma50sig?bullbear(ma50sig):bdg('N/D','neut')}</div>
+        <div class="sb"><div class="sn">ATR Stimato</div><div class="sv" style="font-size:13px">${atrVal?fmt(atrVal):'--'}</div>${bdg('Volatilit\u00e0','neut')}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Area target e setup \u2014 ${atf==='scalp'?'Scalping':atf==='swing'?'Swing':'Position'}</div>
+      <div class="tftabs">
+        <button class="tft ${atf==='scalp'?'active':''}" onclick="swTf('scalp')">Scalping 15m\u20134h</button>
+        <button class="tft ${atf==='swing'?'active':''}" onclick="swTf('swing')">Swing 4h\u20131D</button>
+        <button class="tft ${atf==='position'?'active':''}" onclick="swTf('position')">Position 1W\u20131M</button>
+      </div>
+      <div class="rrrow">
+        <span style="font-size:12px;color:#555570;font-family:'Space Mono',monospace">Risk/Reward:</span>
+        <span class="rrbadge" style="${s.rr<2?'background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)':''}">1 : ${s.rr?s.rr.toFixed(2):'--'}</span>
+        ${s.rr<2?'<span style="font-size:11px;color:#ef4444;font-family:\'Space Mono\',monospace">\u26a0 Setup sfavorevole</span>':''}
+        <span class="atr-badge">${atrLabel}</span>
+      </div>
+      <div class="tgrid">
+        <div class="tb entry"><div class="tl">Area entry</div><div class="tp">${fmt(s.entry)}</div><div class="tsub">${s.tf}</div></div>
+        <div class="tb target"><div class="tl">Area target probabile</div><div class="tp">${fmt(s.t1)}</div><div class="tsub">T2: ${fmt(s.t2)}</div></div>
+        <div class="tb stop"><div class="tl">Stop loss ATR</div><div class="tp">${fmt(s.stop)}</div><div class="tsub">dinamico</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#555570;font-family:'Space Mono',monospace;font-style:italic">I livelli indicati sono zone probabilistiche basate su indicatori storici, non previsioni. Gestisci sempre il rischio in modo indipendente.</div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Livelli Fibonacci (90 giorni)</div>
+      <div class="fibs">
+        <div class="fr"><span class="fl">Ext 161.8%</span><span class="fp" style="color:#22c55e">${fmt(fb.ext161)}</span>${bdg('area target lungo','bull')}</div>
+        <div class="fr"><span class="fl">Ext 127.2%</span><span class="fp" style="color:#22c55e">${fmt(fb.ext127)}</span>${bdg('area target swing','bull')}</div>
+        <div class="fr"><span class="fl">Max 90g</span><span class="fp">${fmt(fb.max)}</span>${bdg('resistenza','neut')}</div>
+        <div class="fr"><span class="fl">23.6%</span><span class="fp">${fmt(fb.r236)}</span>${bdg('supporto debole','neut')}</div>
+        <div class="fr"><span class="fl">38.2%</span><span class="fp">${fmt(fb.r382)}</span>${bdg('supporto medio','warn')}</div>
+        <div class="fr"><span class="fl">50.0%</span><span class="fp">${fmt(fb.r500)}</span>${bdg('pivot','warn')}</div>
+        <div class="fr"><span class="fl">61.8%</span><span class="fp">${fmt(fb.r618)}</span>${bdg('supporto forte','warn')}</div>
+        <div class="fr"><span class="fl">78.6%</span><span class="fp" style="color:#ef4444">${fmt(fb.r786)}</span>${bdg('supporto critico','bear')}</div>
+        <div class="fr"><span class="fl">Min 90g</span><span class="fp" style="color:#ef4444">${fmt(fb.min)}</span>${bdg('zona supporto','bear')}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Andamento prezzi (90 giorni)</div>
+      <div class="chwrap"><canvas id="pc" role="img" aria-label="Grafico ${coin.name} 90 giorni">${coin.name} price chart.</canvas></div>
+    </div>
+
+    <div class="disc">Dati: CoinGecko API \u00b7 Solo a scopo informativo, non consulenza finanziaria \u00b7 I segnali sono probabilistici \u00b7 DYOR</div>
+  `;
+
+  document.getElementById('content').style.display='block';
+
+  setTimeout(function(){
+    var ctx=document.getElementById('pc');
+    if(!ctx)return;
+    if(chart){chart.destroy();chart=null;}
+    var labels=prices.map(function(d){var dt=new Date(d[0]);return dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});});
+    var vals=prices.map(function(d){return d[1]});
+    var isUp=vals[vals.length-1]>=vals[0];
+    chart=new Chart(ctx,{
+      type:'line',
+      data:{labels:labels,datasets:[{data:vals,borderColor:isUp?'#22c55e':'#ef4444',borderWidth:1.5,pointRadius:0,tension:.3,fill:true,backgroundColor:isUp?'rgba(34,197,94,.05)':'rgba(239,68,68,.05)'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a28',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#555570',bodyColor:'#e2e2ee',callbacks:{label:function(c){return fmt(c.parsed.y);}}}},scales:{x:{ticks:{maxTicksLimit:8,font:{size:10},color:'#555570',autoSkip:true},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{font:{size:10},color:'#555570',callback:function(v){var s=typeof getCurrencySymbol==='function'?getCurrencySymbol():'$';return v>=1000?s+(v/1000).toFixed(0)+'k':s+v.toFixed(v>=1?0:4);}},grid:{color:'rgba(255,255,255,.04)'}}}}
+    });
+  },60);
+}
+
+window.swTf=function(tf){atf=tf;if(cdata)render(cdata.coin,cdata.market,cdata.prices);};
+window.q=function(id){document.getElementById('coinInput').value=id;loadCoin(true);};
+window.getCurrency=function(){var el=document.getElementById('currencySelect');return el?el.value:'usd';};
+window.getCurrencySymbol=function(){return getCurrency()==='eur'?'\u20ac':'$';};
+
+document.getElementById('currencySelect').addEventListener('change',function(){loadCoin(true);});
+
+window.loadCoin=async function(forceRefresh){
+  var raw=document.getElementById('coinInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!raw)return;
+  // Risolvi simbolo: prima dalla mappa, poi prova uppercase diretto
+  var sym=COIN_MAP[raw]||(raw.toUpperCase());
+  var pair=sym+'USDT';
+  document.getElementById('loading').style.display='block';
+  document.getElementById('content').style.display='none';
+  document.getElementById('errbox').style.display='none';
+  document.getElementById('abtn').disabled=true;
+  var qbtns=document.querySelectorAll('.qbtn');
+  qbtns.forEach(function(b){b.disabled=true;});
+  try{
+    var currency=getCurrency();
+    // EUR/USD tasso approssimato (Binance non ha EUR diretto per tutti)
+    var eurRate=0.92;
+    if(currency==='eur'){
+      try{
+        var rateRes=await cachedFetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT');
+        if(rateRes&&rateRes.price)eurRate=parseFloat(rateRes.price)||0.92;
+      }catch(e){}
+    }
+    var convert=function(v){return currency==='eur'?v*eurRate:v;};
+
+    // Dati ticker 24h
+    var urlTicker='https://api.binance.com/api/v3/ticker/24hr?symbol='+pair;
+    // Dati storici 90 giorni (klines daily)
+    var urlKlines='https://api.binance.com/api/v3/klines?symbol='+pair+'&interval=1d&limit=90';
+    if(forceRefresh){delete _cache[urlTicker];delete _cache[urlKlines];}
+
+    var ticker=await cachedFetch(urlTicker);
+    if(ticker.code)throw new Error('"'+raw+'" non trovata. Prova: bitcoin, ethereum, solana, bnb, xrp, doge, ada, dot...');
+    var klines=await cachedFetch(urlKlines);
+
+    var priceUsd=parseFloat(ticker.lastPrice)||0;
+    var cur=convert(priceUsd);
+    var c24=parseFloat(ticker.priceChangePercent)||0;
+    var vol24Usd=parseFloat(ticker.quoteVolume)||0;
+
+    // Build prices [[timestamp, price]]
+    var prices=klines.map(function(k){return[parseInt(k[0]),convert(parseFloat(k[4]))];});
+    if(prices.length<2)throw new Error('Dati storici insufficienti');
+
+    var p7ago=prices.length>=7?prices[prices.length-7][1]:prices[0][1];
+    var c7=p7ago>0?(cur-p7ago)/p7ago*100:0;
+    var histMax=convert(Math.max.apply(null,klines.map(function(k){return parseFloat(k[2]);})));
+
+    var coinName=COIN_NAMES[sym]||sym;
+    var coin={
+      id:sym.toLowerCase(),
+      name:coinName,
+      symbol:sym,
+      image:'https://assets.coingecko.com/coins/images/1/small/bitcoin.png', // fallback
+      current_price:cur,
+      market_cap:0,
+      total_volume:convert(vol24Usd),
+      price_change_percentage_24h:c24,
+      price_change_percentage_7d_in_currency:c7,
+      circulating_supply:0,
+      max_supply:null,
+      market_cap_rank:null,
+      ath:histMax>cur?histMax:cur*1.05
+    };
+    cdata={coin:coin,market:coin,prices:prices};
+    render(coin,coin,prices);
+  }catch(e){
+    document.getElementById('errbox').textContent=e.message||'Errore di rete. Controlla la connessione e riprova.';
+    document.getElementById('errbox').style.display='block';
+  }finally{
+    document.getElementById('loading').style.display='none';
+    document.getElementById('abtn').disabled=false;
+    qbtns.forEach(function(b){b.disabled=false;});
+  }
+};
+
+document.getElementById('coinInput').addEventListener('keydown',function(e){if(e.key==='Enter')loadCoin(true);});
+
+var s=document.createElement('script');
+s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+s.onload=function(){loadCoin();};
+s.onerror=function(){
+  var cw=document.querySelector('.chwrap');
+  if(cw)cw.innerHTML='<p style="color:#555570;font-size:12px;font-family:\'Space Mono\',monospace;padding:20px">Grafico non disponibile offline.</p>';
+  loadCoin();
+};
+document.head.appendChild(s);
+</script>
+</body>
+</html>
